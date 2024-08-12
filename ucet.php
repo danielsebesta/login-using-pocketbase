@@ -1,3 +1,39 @@
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+	$email = $_POST['email'];
+	$password = $_POST['password'];
+
+	$postData = json_encode([
+		'identity' => $email,
+		'password' => $password,
+	]);
+
+
+
+	$ch = curl_init('https://pb.smirkhat.org/api/collections/users/auth-with-password');
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_POST, true);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, [
+		'Content-Type: application/json',
+		'Content-Length: ' . strlen($postData)
+	]);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+
+	$response = curl_exec($ch);
+	$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	curl_close($ch);
+
+	if ($httpcode === 200) {
+		$data = json_decode($response, true);
+		$_SESSION['user'] = $data['record'];
+		header('Location: index.php');
+		exit();
+	} else {
+		$loginError = 'Neplatné přihlašovací údaje, zkuste to znovu.';
+	}
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,10 +47,28 @@
 <body>
 	<center>
 		<h1>Pocketbase PHP</h1>
-		<p>3/8 - connecting Pocketbase with PHP, created certificate with Certbot, created oAuth details on Google, started implementing Posts view using API.</p>
+		<p>4/8 - connecting Pocketbase login with PHP, tried to handle logging in with existing user in the database</p>
 	</center>
 	<br>
+
 	<div class="container">
+		<h2 class="text-center">Přihlášení</h2>
+		<?php if ($loginError) {
+			echo '<div class="alert alert-danger">' . $loginError . '</div>';
+		} ?>
+		<form action="" method="POST">
+			<div class="mb-3">
+				<label class="form-label" for="email">E-mailová adresa</label>
+				<input type="email" class="form-control" id="email" name="email" required>
+			</div>
+			<div class="mb-3">
+				<label class="form-label" for="password">Heslo</label>
+				<input type="password" class="form-control" id="password" name="password" required>
+			</div>
+			<div class="d-flex align-items-center">
+				<button type="submit" class="btn btn-primary ms-auto" name="login">Přihlásit se</button>
+			</div>
+		</form>
 		<?php
 		// URL API
 		$url = "https://pb.smirkhat.org/api/collections/posts/records";
