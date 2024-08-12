@@ -4,13 +4,15 @@ session_start();
 if (isset($_GET['action'])) {
 	$action = $_GET['action'];
 
-	if ($action == 'verify') {
+	if ($action == 'verify' && isset($_SESSION['user']['email'])) {
 		$url = 'https://pb.smirkhat.org/api/collections/users/request-verification';
 
-		// The data to send in the POST request
+		// Použijeme email přihlášeného uživatele
 		$data = [
-			'email' => 'dastplast@smirkhat.org'
+			'email' => $_SESSION['user']['email']
 		];
+
+		echo $_SESSION['user']['email'];
 
 		// Initialize cURL session
 		$ch = curl_init($url);
@@ -28,7 +30,7 @@ if (isset($_GET['action'])) {
 			echo 'Error:' . curl_error($ch);
 		} else {
 			// Output the response from the server
-			echo 'Response:' . $response;
+			echo '<script>alert("Byl ti odeslán ověřovací kód na email!")</script>';
 		}
 
 		// Close cURL session
@@ -40,7 +42,6 @@ if (isset($_GET['action'])) {
 		$_SESSION = array(); // Destroy all session data
 		setcookie("PHPSESSID", "", time() - 3600, "/"); // Expire the cookie
 		session_destroy(); // Destroy the session
-		header('Location: index.php'); // Redirect to index.php
 		exit(); // Ensure no further code is executed after redirect
 	}
 }
@@ -82,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 	if ($httpcode === 200) {
 		$data = json_decode($response, true);
 		$_SESSION['user'] = $data['record'];
-		header('Location: index.php');
+		header("Refresh:0");
 		exit();
 	} else {
 		$loginError = 'Neplatné přihlašovací údaje, zkuste to znovu.';
