@@ -1,13 +1,48 @@
 <?php
 session_start();
 
-// Handle logout if action is set to 'logout'
-if (isset($_GET['action']) && $_GET['action'] == 'logout') {
-	$_SESSION = array(); // destroy all session data
-	setcookie("PHPSESSID", "", time() - 3600, "/");
-	session_destroy();
-	header('Location: index.php');
-	exit();
+if (isset($_GET['action'])) {
+	$action = $_GET['action'];
+
+	if ($action == 'verify') {
+		$url = 'https://pb.smirkhat.org/api/collections/users/request-verification';
+
+		// The data to send in the POST request
+		$data = [
+			'email' => 'dastplast@smirkhat.org'
+		];
+
+		// Initialize cURL session
+		$ch = curl_init($url);
+
+		// Set cURL options
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data)); // Send data as query string
+
+		// Execute the POST request
+		$response = curl_exec($ch);
+
+		// Check for errors
+		if (curl_errno($ch)) {
+			echo 'Error:' . curl_error($ch);
+		} else {
+			// Output the response from the server
+			echo 'Response:' . $response;
+		}
+
+		// Close cURL session
+		curl_close($ch);
+		exit(); // Exit after displaying alert to prevent further script execution
+	}
+
+	if ($action == 'logout') {
+		$_SESSION = array(); // Destroy all session data
+		setcookie("PHPSESSID", "", time() - 3600, "/"); // Expire the cookie
+		session_destroy(); // Destroy the session
+		header('Location: index.php'); // Redirect to index.php
+		exit(); // Ensure no further code is executed after redirect
+	}
 }
 
 
@@ -95,25 +130,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="cs" data-bs-core="smirkhat">
 
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Pocketbase PHP</title>
+	<title>SmirkHat.org</title>
 	<link rel="stylesheet" href="https://smirkhat.org/assets/css/halfmoon.min.css??">
+	<link rel="stylesheet" href="https://smirkhat.org/assets/css/halfmoon.elegant.css?<?php echo filemtime('/var/www/smirkhat/assets/css/halfmoon.elegant.css') ?>">
+	<link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css">
+	<link rel="preload" href="https://smirkhat.org/assets/fonts/Mona-Sans.woff2" as="font" type="font/woff2" crossorigin>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-	<center>
-		<h1>Pocketbase PHP</h1>
-		<p>6/8 - added register and made it so you can create new accounts</p>
-	</center>
-	<br>
+	<div class="specific-w-300 mw-100 mx-auto">
+		<?php if ($isLoggedIn) : ?>
 
-	<div class="container">
-		<div class="specific-w-300 mw-100 mx-auto">
-				<?php
+			<h2 class="text-center">Vítejte, <?php echo htmlspecialchars($userData['id']); ?>!</h2>
+			<div class="card">
+				<div class="card-body">
+					<?php
 					// User ID from $userData
 					$userID = htmlspecialchars($userData['id']);
 
@@ -158,7 +197,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 					<p><strong>ID:</strong> <?php echo htmlspecialchars($userData['id']); ?></p>
 					<p><strong>Username:</strong> <?php echo htmlspecialchars($userData['username']); ?></p>
 
+					<!-- Přidejte další údaje, které chcete zobrazit -->
+				</div>
+			</div>
 			<a href="?action=logout" class="btn btn-danger mt-3">Odhlásit se</a>
+		<?php else : ?>
 			<h2 class="text-center">Přihlášení</h2>
 			<?php if ($loginError) {
 				echo '<div class="alert alert-danger">' . $loginError . '</div>';
@@ -176,7 +219,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 					<button type="submit" class="btn btn-primary ms-auto" name="login">Přihlásit se</button>
 				</div>
 			</form>
-		</div>
+
+			<hr>
+
+			<h2 class="text-center">Registrace</h2>
+			<?php if ($registerSuccess) {
+				echo '<div class="alert alert-success">' . $registerSuccess . '</div>';
+			} ?>
+			<?php if ($registerError) {
+				echo '<div class="alert alert-danger">' . $registerError . '</div>';
+			} ?>
+			<form action="" method="POST">
+				<div class="mb-3">
+					<label class="form-label" for="username">Uživatelské jméno</label>
+					<input type="text" class="form-control" id="username" name="username" required>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="email">E-mailová adresa</label>
+					<input type="email" class="form-control" id="email" name="email" required>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="password">Heslo</label>
+					<input type="password" class="form-control" id="password" name="password" required>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="passwordConfirm">Potvrzení hesla</label>
+					<input type="password" class="form-control" id="passwordConfirm" name="passwordConfirm" required>
+				</div>
+				<div class="d-flex align-items-center">
+					<button type="submit" class="btn btn-secondary ms-auto" name="register">Registrovat se</button>
+				</div>
+			</form>
+		<?php endif; ?>
 	</div>
 </body>
 
