@@ -1,9 +1,12 @@
 <?php
+// Zahájení session
 session_start();
 
+// Pokud je nastavena akce
 if (isset($_GET['action'])) {
 	$action = $_GET['action'];
 
+	// Ověření emailu
 	if ($action == 'verify' && isset($_SESSION['user']['email'])) {
 		$url = 'https://pb.smirkhat.org/api/collections/users/request-verification';
 
@@ -14,48 +17,47 @@ if (isset($_GET['action'])) {
 
 		echo $_SESSION['user']['email'];
 
-		// Initialize cURL session
+		// Inicializace cURL session
 		$ch = curl_init($url);
 
-		// Set cURL options
+		// Nastavení cURL možností
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, true);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data)); // Send data as query string
+		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data)); // Odeslání dat jako query string
 
-		// Execute the POST request
+		// Provedení POST requestu
 		$response = curl_exec($ch);
 
-		// Check for errors
+		// Kontrola chyb
 		if (curl_errno($ch)) {
 			echo 'Error:' . curl_error($ch);
 		} else {
-			// Output the response from the server
+			// Výstup odpovědi ze serveru
 			echo '<script>alert("Byl ti odeslán ověřovací kód na email!")</script>';
 		}
 
-		// Close cURL session
+		// Uzavření cURL session
 		curl_close($ch);
-		exit(); // Exit after displaying alert to prevent further script execution
+		exit(); // Ukončení skriptu po zobrazení alertu, aby se předešlo dalšímu vykonávání kódu
 	}
 
+	// Odhlášení uživatele
 	if ($action == 'logout') {
-		$_SESSION = array(); // Destroy all session data
-		setcookie("PHPSESSID", "", time() - 3600, "/"); // Expire the cookie
-		session_destroy(); // Destroy the session
-		exit(); // Ensure no further code is executed after redirect
+		$_SESSION = array(); // Zničení všech session dat
+		setcookie("PHPSESSID", "", time() - 3600, "/"); // Vypršení session cookie
+		session_destroy(); // Zničení session
+		exit(); // Zajistí, že se nevykoná žádný další kód po přesměrování
 	}
 }
 
-
-
-// Initialize variables
+// Inicializace proměnných
 $isLoggedIn = isset($_SESSION['user']);
 $userData = $isLoggedIn ? $_SESSION['user'] : null;
 $registerSuccess = null;
 $loginError = null;
 $registerError = null;
 
-// Handle login form submission
+// Zpracování přihlášení
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 	$email = $_POST['email'];
 	$password = $_POST['password'];
@@ -65,8 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 		'password' => $password,
 	]);
 
-
-
+	// Inicializace cURL session pro přihlášení
 	$ch = curl_init('https://pb.smirkhat.org/api/collections/users/auth-with-password');
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	curl_setopt($ch, CURLOPT_POST, true);
@@ -82,16 +83,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
 	if ($httpcode === 200) {
 		$data = json_decode($response, true);
-		$_SESSION['user'] = $data['record'];
-		header("Refresh:0");
+		$_SESSION['user'] = $data['record']; // Uložení uživatelských dat do session
+		header("Refresh:0"); // Obnovení stránky
 		exit();
 	} else {
 		$loginError = 'Neplatné přihlašovací údaje, zkuste to znovu.';
 	}
 }
 
-
-// Handle registration form submission
+// Zpracování registrace
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 	$username = $_POST['username'];
 	$email = $_POST['email'];
@@ -108,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 			'passwordConfirm' => $passwordConfirm,
 		]);
 
+		// Inicializace cURL session pro registraci
 		$ch = curl_init('https://pb.smirkhat.org/api/collections/users/records');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, true);
@@ -150,62 +151,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 	<div class="specific-w-300 mw-100 mx-auto">
 		<br><br>
 		<?php if ($isLoggedIn) : ?>
-
 			<h2 class="text-center">Vítejte, <?php echo htmlspecialchars($userData['id']); ?>!</h2>
 			<div class="card">
 				<div class="card-body">
 					<?php
-					// User ID from $userData
+					// ID uživatele z $userData
 					$userID = htmlspecialchars($userData['id']);
 
 					// API URL
 					$apiUrl = "https://pb.smirkhat.org/api/collections/users/records/" . $userID;
 
-					// Initialize cURL session
+					// Inicializace cURL session
 					$ch2 = curl_init();
 
-					// Set the URL
+					// Nastavení URL
 					curl_setopt($ch2, CURLOPT_URL, $apiUrl);
 
-					// Set to return the transfer as a string
+					// Nastavení návratu přenosu jako řetězce
 					curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
 
-					// Execute the cURL request
+					// Provedení cURL requestu
 					$response = curl_exec($ch2);
 
-					// Close the cURL session
+					// Uzavření cURL session
 					curl_close($ch2);
 
-					// Decode the JSON response
+					// Dekódování JSON odpovědi
 					$responseData2 = json_decode($response, true);
 
-					// Check if 'verified' key exists and is true
+					// Kontrola, zda existuje klíč 'verified' a zda je true
 					$isVerified = isset($responseData2['verified']) ? $responseData2['verified'] : false; ?>
 					<?php if ($isVerified) : ?>
-
-
 						<?php if (!empty($message)) : ?>
 							<p><strong><?php echo htmlspecialchars($message); ?></strong></p>
 						<?php endif; ?>
-
-
 						<span style="color: green;">✅ Verified</span>
 					<?php else : ?>
-
 						<div class="alert alert-danger" role="alert">
-
 							<h5 class="alert-heading">Ověř si email!</h5>
-
 							Nemáš ověřený email, abys mohl dělat cokoliv dalšího, <a href="?action=verify" class="alert-link">ověř si ho</a>.
-
 						</div>
 					<?php endif; ?>
+					
 					<?php
-
-					// Function to generate a random secret key in Base32
+					// Funkce pro generování náhodného tajného klíče v Base32
 					function generateSecretKey($length = 16)
 					{
-						$chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32 characters
+						$chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32 znaky
 						$secret = '';
 						for ($i = 0; $i < $length; $i++) {
 							$secret .= $chars[rand(0, strlen($chars) - 1)];
@@ -213,172 +205,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 						return $secret;
 					}
 
-					// Function to decode Base32 (for Google Authenticator)
+					// Funkce pro dekódování Base32 (pro Google Authenticator)
 					function base32Decode($b32)
 					{
 						$alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-						$b32 = strtoupper($b32);
-						$binary = '';
-						foreach (str_split($b32) as $char) {
-							$binary .= str_pad(base_convert(strpos($alphabet, $char), 10, 2), 5, '0', STR_PAD_LEFT);
+						$binaryString = '';
+						for ($i = 0; $i < strlen($b32); $i++) {
+							$binaryString .= str_pad(base_convert(strpos($alphabet, $b32[$i]), 10, 2), 5, '0', STR_PAD_LEFT);
 						}
-						$binary = str_split($binary, 8);
-						$output = '';
-						foreach ($binary as $bin) {
-							$output .= chr(bindec($bin));
+						$binaryString = str_split($binaryString, 8);
+						$decoded = '';
+						for ($i = 0; $i < count($binaryString); $i++) {
+							$decoded .= chr(base_convert($binaryString[$i], 2, 10));
 						}
-						return $output;
+						return $decoded;
 					}
 
-					// Function to generate TOTP code
-					function generateTotp($secret, $timeStep = 30, $digits = 6)
+					// Funkce pro generování TOTP kódu
+					function generateTOTP($secretKey, $interval = 30)
 					{
-						$time = floor(time() / $timeStep);
-						$time = str_pad(pack('N*', $time), 8, chr(0), STR_PAD_LEFT);
-						$secret = base32Decode($secret);
-
-						$hash = hash_hmac('sha1', $time, $secret, true);
-						$offset = ord(substr($hash, -1)) & 0xF;
-
-						$otp = (ord($hash[$offset + 0]) & 0x7F) << 24 |
-							(ord($hash[$offset + 1]) & 0xFF) << 16 |
-							(ord($hash[$offset + 2]) & 0xFF) << 8 |
-							(ord($hash[$offset + 3]) & 0xFF);
-
-						$otp = $otp % pow(10, $digits);
-
-						return str_pad($otp, $digits, '0', STR_PAD_LEFT);
+						$key = base32Decode($secretKey);
+						$time = floor(time() / $interval);
+						$time = pack('N*', 0) . pack('N*', $time);
+						$hash = hash_hmac('sha1', $time, $key, true);
+						$offset = ord($hash[19]) & 0xf;
+						$otp = (
+							((ord($hash[$offset + 0]) & 0x7f) << 24) |
+							((ord($hash[$offset + 1]) & 0xff) << 16) |
+							((ord($hash[$offset + 2]) & 0xff) << 8) |
+							(ord($hash[$offset + 3]) & 0xff)
+						) % 1000000;
+						return str_pad($otp, 6, '0', STR_PAD_LEFT);
 					}
 
-					// Function to verify the TOTP code
-					function verifyTotp($secret, $code, $timeStep = 30, $tolerance = 1, $digits = 6)
-					{
-						$time = floor(time() / $timeStep);
+					$secretKey = generateSecretKey(); // Generování náhodného tajného klíče
 
-						for ($i = -$tolerance; $i <= $tolerance; ++$i) {
-							$generatedCode = generateTotp($secret, $timeStep, $digits);
-							if ($generatedCode === $code) {
-								return true;
-							}
-						}
+					$totpCode = generateTOTP($secretKey); // Generování TOTP kódu
 
-						return false;
-					}
-
-					// Handle form submission
-					$message = '';
-					if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-						$codeFromUser = $_POST['auth_code'] ?? '';
-						$secret = $_POST['secret'] ?? '';
-
-						if (verifyTotp($secret, $codeFromUser)) {
-							echo "<script>alert('Byl jsi ověřen!'); window.location.href = 'https://smirkhat.org';</script>";
-							exit; // Stop execution
-						} else {
-							$message = "Neplatný kód, zkus to znovu!";
-						}
-					}
+					echo "Váš TOTP kód je: $totpCode";
 					?>
-
-					<script>
-						document.addEventListener("DOMContentLoaded", function() {
-							let secret = localStorage.getItem('auth_secret');
-							if (!secret) {
-								secret = "<?php echo generateSecretKey(); ?>";
-								localStorage.setItem('auth_secret', secret);
-								const user = "test@smirkhat.org"; // You can replace this with dynamic username
-								const issuer = "SmirkHat.org"; // Replace with your app's name
-								const otpUri = `otpauth://totp/${issuer}:${user}?secret=${secret}&issuer=${issuer}`;
-								const qrCodeUrl = `https://smirkhat.org/qrcode.php?s=qr&w=512&h=512&p=0&wq=0&d=${encodeURIComponent(otpUri)}`;
-								document.getElementById('qrcode').src = qrCodeUrl;
-								document.getElementById('display_secret').innerText = secret;
-								document.getElementById('secret').value = secret;
-								document.getElementById('setup').style.display = 'block';
-								document.getElementById('verification').style.display = 'none';
-							} else {
-								document.getElementById('setup').style.display = 'none';
-								document.getElementById('verification').style.display = 'block';
-							}
-						});
-					</script>
-
-					<h1>2FA testování</h1>
-
-					<div id="setup">
-						<p>Naskenuj tento QR kód s jakoukoliv Authenticator aplikací:</p>
-						<img id="qrcode" alt="QR Code" />
-
-						<p>Nebo zadej tento kód manuálně: <strong id="display_secret"></strong></p>
-					</div>
-
-					<div id="verification" style="display:none;">
-						<p>Máte již nastavenou 2FA. Zadejte kód vygenerovaný z aplikace:</p>
-					</div>
-
-					<form method="post" action="">
-						<input type="hidden" id="secret" name="secret">
-						<label for="auth_code">Sem zadej kód vygenerovaný z aplikace:</label><br>
-						<input type="text" id="auth_code" name="auth_code" required><br><br>
-						<a type="submit" class="btn btn-secondary" value="Ověřit">Ověřit</a>					</form><br>
-					<h5 class="card-title">Údaje o uživateli</h5>
-
-					<p><strong>Email:</strong> <?php echo htmlspecialchars($userData['email']); ?></p>
-					<p><strong>ID:</strong> <?php echo htmlspecialchars($userData['id']); ?></p>
-					<p><strong>Username:</strong> <?php echo htmlspecialchars($userData['username']); ?></p>
-
-					<!-- Přidejte další údaje, které chcete zobrazit -->
+				</div>
+				<a href="?action=logout" class="btn btn-primary">Odhlásit se</a>
+			</div>
+		<?php else : ?>
+			<div class="card">
+				<div class="card-header">
+					<h2>Přihlášení</h2>
+				</div>
+				<div class="card-body">
+					<?php if ($loginError) : ?>
+						<div class="alert alert-danger"><?php echo htmlspecialchars($loginError); ?></div>
+					<?php endif; ?>
+					<form method="post">
+						<div class="form-group">
+							<label for="email">Email:</label>
+							<input type="email" name="email" class="form-control" required>
+						</div>
+						<div class="form-group">
+							<label for="password">Heslo:</label>
+							<input type="password" name="password" class="form-control" required>
+						</div>
+						<button type="submit" name="login" class="btn btn-primary">Přihlásit se</button>
+					</form>
 				</div>
 			</div>
-			<a href="?action=logout" class="btn btn-danger mt-3">Odhlásit se</a>
-		<?php else : ?>
-			<h2 class="text-center">Přihlášení</h2>
-			<?php if ($loginError) {
-				echo '<div class="alert alert-danger">' . $loginError . '</div>';
-			} ?>
-			<form action="" method="POST">
-				<div class="mb-3">
-					<label class="form-label" for="email">E-mailová adresa</label>
-					<input type="email" class="form-control" id="email" name="email" required>
-				</div>
-				<div class="mb-3">
-					<label class="form-label" for="password">Heslo</label>
-					<input type="password" class="form-control" id="password" name="password" required>
-				</div>
-				<div class="d-flex align-items-center">
-					<button type="submit" class="btn btn-primary ms-auto" name="login">Přihlásit se</button>
-				</div>
-			</form>
 
 			<hr>
 
-			<h2 class="text-center">Registrace</h2>
-			<?php if ($registerSuccess) {
-				echo '<div class="alert alert-success">' . $registerSuccess . '</div>';
-			} ?>
-			<?php if ($registerError) {
-				echo '<div class="alert alert-danger">' . $registerError . '</div>';
-			} ?>
-			<form action="" method="POST">
-				<div class="mb-3">
-					<label class="form-label" for="username">Uživatelské jméno</label>
-					<input type="text" class="form-control" id="username" name="username" required>
+			<div class="card">
+				<div class="card-header">
+					<h2>Registrace</h2>
 				</div>
-				<div class="mb-3">
-					<label class="form-label" for="email">E-mailová adresa</label>
-					<input type="email" class="form-control" id="email" name="email" required>
+				<div class="card-body">
+					<?php if ($registerSuccess) : ?>
+						<div class="alert alert-success"><?php echo htmlspecialchars($registerSuccess); ?></div>
+					<?php elseif ($registerError) : ?>
+						<div class="alert alert-danger"><?php echo htmlspecialchars($registerError); ?></div>
+					<?php endif; ?>
+					<form method="post">
+						<div class="form-group">
+							<label for="username">Uživatelské jméno:</label>
+							<input type="text" name="username" class="form-control" required>
+						</div>
+						<div class="form-group">
+							<label for="email">Email:</label>
+							<input type="email" name="email" class="form-control" required>
+						</div>
+						<div class="form-group">
+							<label for="password">Heslo:</label>
+							<input type="password" name="password" class="form-control" required>
+						</div>
+						<div class="form-group">
+							<label for="passwordConfirm">Potvrďte heslo:</label>
+							<input type="password" name="passwordConfirm" class="form-control" required>
+						</div>
+						<button type="submit" name="register" class="btn btn-primary">Registrovat se</button>
+					</form>
 				</div>
-				<div class="mb-3">
-					<label class="form-label" for="password">Heslo</label>
-					<input type="password" class="form-control" id="password" name="password" required>
-				</div>
-				<div class="mb-3">
-					<label class="form-label" for="passwordConfirm">Potvrzení hesla</label>
-					<input type="password" class="form-control" id="passwordConfirm" name="passwordConfirm" required>
-				</div>
-				<div class="d-flex align-items-center">
-					<button type="submit" class="btn btn-secondary ms-auto" name="register">Registrovat se</button>
-				</div>
-			</form>
+			</div>
 		<?php endif; ?>
 	</div>
 </body>
