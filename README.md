@@ -1,5 +1,6 @@
 # login-using-pocketbase
 
+few adjustments were made by chatgpt, also the commenting
 
 You will need:
 - Latest PHP
